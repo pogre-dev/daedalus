@@ -1,0 +1,9 @@
+# The overlay itself
+numpy>=1.24
+pillow>=10.1
+# tkinter ships with the python.org Windows installer (Linux: apt install python3-tk)
+
+# Live detection: the same packages Solar-CR's bot uses. Skip these to run
+# only `demo`, `replay`, `shot` and `croverlay.evaluate`.
+ultralytics>=8.1
+# opencv-python   # only for --source video

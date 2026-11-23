@@ -238,6 +238,17 @@ DIRECTIONAL_SPELLS = frozenset({
     "fireball", "arrows", "rocket", "goblin_barrel", "giant_snowball", "the_log",
     "barbarian_barrel",
 })
+# Where a spell that does not travel is usually cast, which is what the half it
+# lands in says about its owner. A heuristic from how the cards are played,
+# not a rule: +1 = mostly offensive (cast on the opponent's side), -1 = mostly
+# defensive (cast on your own side), 0 = both. Own-deploy markers, when the
+# detector reports them, override this entirely.
+SPELL_INTENT = {
+    "lightning": 1, "graveyard": 1, "freeze": 1, "earthquake": 1, "rage": 1,
+    "clone": 1, "void": 1, "poison": 0, "zap": 0, "goblin_curse": 0, "mirror": 0,
+    "tornado": -1,
+}
+
 # Troops that are not restricted to their own half when deployed.
 DEPLOY_ANYWHERE = frozenset({"miner", "goblin_drill"})
 

@@ -226,6 +226,8 @@ class PlayExtractor:
 
     def _gate(self, track: Track, t: float) -> float:
         gap = max(0.0, t - track.last_t)
+        if self._keep(track) == self.cfg.building_keep_s:
+            return self.cfg.unit_gate            # buildings do not move
         if track.is_spell:
             return min(self.cfg.spell_gate + self.cfg.spell_speed * gap, 14.0)
         return min(self.cfg.unit_gate + self.cfg.unit_speed * gap, self.cfg.max_gate)
@@ -414,8 +416,10 @@ class PlayExtractor:
         # seen. Deck knowledge may pick the side, but it is not evidence that a
         # play happened, so it never raises confidence.
         hits = sum(tr.hits for tr in tracks)
-        confidence = min(1.0, abs(physical) / 5.0) * (0.5 + 0.5 * min(1.0, hits / 4.0))
-        if physical * score < 0:
+        sign = 1.0 if side == ENEMY else -1.0
+        agreeing = min(3.0, max(0.0, sign * knowledge)) if sign * physical > 0 else 0.0
+        confidence = min(1.0, (abs(physical) + 0.5 * agreeing) / 5.0) * (0.5 + 0.5 * min(1.0, hits / 4.0))
+        if sign * physical <= 0:
             confidence *= 0.5
         play = Play(group.first_t, card, side, round(group.x, 2), round(group.y, 2),
                     sum(units.values()), round(score, 2), round(confidence, 2),
@@ -505,8 +509,10 @@ class PlayExtractor:
             if thrower:
                 score += 3.0 if thrower == ENEMY else -3.0
                 why.append(f"travels {'down' if thrower == ENEMY else 'up'}")
-            if where != "river":
-                score += 0.75 if where == ALLY else -0.75
+            if where != "river" and not thrower:
+                intent = catalog.SPELL_INTENT.get(card, 0)
+                weight = {1: 1.5, 0: 0.75, -1: -1.0}[intent]
+                score += weight if where == ALLY else -weight
                 why.append(f"lands in {where} half")
         elif card in catalog.DEPLOY_ANYWHERE:
             if where != "river":

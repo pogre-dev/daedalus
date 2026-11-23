@@ -24,7 +24,12 @@ from .tracker import ALLY, ENEMY, Detection, Play, PlayExtractor, Settings
 # A play the cycle says is impossible is believed - and the cycle repaired by
 # assuming plays were missed in between - only when the evidence for it is at
 # least this strong. Below it the play is taken to be a misread.
-REPAIR_CONFIDENCE = 0.8
+# A play the cycle says is impossible needs this much evidence to be believed,
+# by how many missed plays the repair has to assume. Missing one play (a spell
+# the detector never saw) is routine, and rejecting the plays that follow it
+# would leave the cycle stuck one step behind for the rest of the match. Needing
+# three or four missed plays is more likely a re-acquired unit.
+REPAIR_CONFIDENCE = {1: 0.4, 2: 0.55, 3: 0.8, 4: 0.8}
 # Plays below this confidence had no physical evidence for either side (a
 # stationary spell with no markers, say) and are left out of the models: a
 # missed play costs less than an invented one, because the cycle can absorb a
@@ -83,11 +88,11 @@ class Snapshot:
 
 class Battle:
     def __init__(self, my_deck: Sequence[str] = (), settings: Optional[Settings] = None,
-                 repair_confidence: float = REPAIR_CONFIDENCE):
+                 repair_confidence: Optional[Dict[int, float]] = None):
         self.my_deck = [c for c in (catalog.from_any(x) for x in my_deck) if c]
         self.players: Dict[str, Player] = {ENEMY: Player(), ALLY: Player()}
         self.extractor = PlayExtractor(knowledge=self, settings=settings)
-        self.repair_confidence = repair_confidence
+        self.repair_confidence = dict(repair_confidence or REPAIR_CONFIDENCE)
         self.t = 0.0
 
     # ----------------------------------------------------- Knowledge protocol
@@ -142,7 +147,8 @@ class Battle:
 
         inserted = 0
         if not player.cycle.feasible(play.card):
-            if play.confidence < self.repair_confidence:
+            needed = player.cycle.missed_plays_needed(play.card)
+            if play.confidence < self.repair_confidence.get(needed, 0.8):
                 player.rejected += 1
                 return False
             inserted = player.cycle.play(play.card, play.t, repair=True)
