@@ -178,3 +178,13 @@ def test_reidentified_after_a_gap_longer_than_track_memory():
          .hide("prince", 2.0, 15.0))
     plays, _ = run(s, 21)
     assert summary(plays) == [(ENEMY, "prince")]
+
+
+def test_menu_arena_does_not_count_as_a_battle():
+    from croverlay.detector import Box, battle_towers
+    battle = [Box("king-tower", 0.9, 500, 250, 620, 340), Box("queen-tower", 0.9, 230, 420, 300, 480),
+              Box("queen-tower", 0.9, 230, 1120, 300, 1180), Box("king-tower", 0.9, 500, 1300, 620, 1390)]
+    assert battle_towers(battle, 1920)
+    menu = [Box("king-tower", 0.9, 500, 800, 560, 840), Box("queen-tower", 0.9, 400, 900, 440, 930),
+            Box("queen-tower", 0.9, 640, 900, 680, 930)]
+    assert not battle_towers(menu, 1920)

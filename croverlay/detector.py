@@ -119,6 +119,19 @@ class SideClassifier:
                 for l, c in zip(label.tolist(), conf.tolist())]
 
 
+# In battle the crown towers span most of the frame: princess tower to princess
+# tower alone is ~0.37 of a 9:16 surface's height, king to king ~0.54. The home
+# screen also shows an arena with towers, drawn smaller; requiring this span
+# keeps the menu from starting a battle clock.
+MIN_TOWER_SPAN = 0.33
+
+
+def battle_towers(boxes: Sequence["Box"], frame_height: int) -> bool:
+    ys = [b.centre[1] for b in boxes
+          if b.name in geometry.PRINCESS_CLASSES or b.name in geometry.KING_CLASSES]
+    return len(ys) >= 2 and (max(ys) - min(ys)) >= MIN_TOWER_SPAN * frame_height
+
+
 class Detector:
     """YOLO over one frame -> boxes; boxes + calibration -> Detections."""
 
@@ -187,7 +200,7 @@ class Detector:
             x, y = calibrator.to_tile(*b.centre)
             side, conf = side_of.get(id(b), (None, 0.0))
             out.append(Detection(b.name, x, y, b.conf, side if conf >= self.side_floor else None))
-        return out, bool(towers)
+        return out, battle_towers(boxes, frame.shape[0])
 
 
 class _NoInfo:
